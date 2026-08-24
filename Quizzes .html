@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ACM-W AI Quiz Challenge</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:linear-gradient(135deg,#eef4ff,#f8fbff);color:#172033}
+.wrap{max-width:850px;margin:auto;padding:28px 16px}
+header{text-align:center;margin-bottom:20px}
+.tag{color:#315ea8;font-weight:800;letter-spacing:1.5px;font-size:13px}
+h1{font-size:clamp(30px,8vw,52px);margin:8px 0 12px;line-height:1.05}
+.subtitle{color:#667085;font-size:16px;line-height:1.5}
+.card{background:#fff;border:1px solid #e1e7f0;border-radius:22px;padding:22px;box-shadow:0 14px 40px rgba(30,60,110,.12)}
+.top{display:flex;justify-content:space-between;color:#667085;font-weight:700;font-size:14px}
+.track{height:8px;background:#e9edf3;border-radius:20px;margin:16px 0 28px;overflow:hidden}
+.fill{height:100%;width:6.67%;background:#315ea8;border-radius:20px;transition:width .25s}
+#question{font-size:clamp(21px,5vw,30px);line-height:1.35;margin:0 0 20px}
+.options{display:grid;gap:12px}
+.option{border:2px solid #e1e7f0;background:#fff;border-radius:14px;padding:15px;text-align:left;font-size:16px;font-weight:700;cursor:pointer}
+.option:active{transform:scale(.99)}
+.option.correct{background:#eaf8f2;border-color:#16835b;color:#126747}
+.option.wrong{background:#fff0f2;border-color:#c73d4d;color:#9d2d3a}
+.next,.restart{margin-top:22px;border:0;border-radius:13px;padding:14px 20px;background:#315ea8;color:#fff;font-size:16px;font-weight:800;width:100%;cursor:pointer}
+.next:disabled{opacity:.45;cursor:not-allowed}
+.result{text-align:center}
+.result .big{font-size:64px;font-weight:900;color:#315ea8;margin:10px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);margin:22px 0;border:1px solid #e1e7f0;border-radius:14px;overflow:hidden}
+.stats div{padding:16px;border-right:1px solid #e1e7f0}
+.stats div:last-child{border-right:0}
+.stats b,.stats span{display:block}.stats b{font-size:25px}.stats span{color:#667085;font-size:13px;margin-top:5px}
+.hidden{display:none!important}
+@media(max-width:600px){.wrap{padding:20px 12px}.card{padding:18px}.stats{grid-template-columns:1fr}.stats div{border-right:0;border-bottom:1px solid #e1e7f0}.stats div:last-child{border-bottom:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<div class="tag">ACM-W • RECRUITMENT QUIZ</div>
+<h1>Artificial Intelligence Quiz</h1>
+<div class="subtitle">Test your knowledge of AI, Machine Learning and related concepts.</div>
+</header>
+
+<section id="quiz" class="card">
+<div class="top"><span id="count"></span><span id="score">Score: 0</span></div>
+<div class="track"><div id="fill" class="fill"></div></div>
+<h2 id="question"></h2>
+<div id="options" class="options"></div>
+<button id="next" class="next" disabled>Next Question</button>
+</section>
+
+<section id="result" class="card result hidden">
+<div class="tag">QUIZ COMPLETED</div>
+<h2>Your Result</h2>
+<div id="final" class="big">0/15</div>
+<p id="message"></p>
+<div class="stats">
+<div><b id="correct">0</b><span>Correct</span></div>
+<div><b id="wrong">0</b><span>Wrong</span></div>
+<div><b id="percent">0%</b><span>Accuracy</span></div>
+</div>
+<button id="restart" class="restart">Try Again</button>
+</section>
+</div>
+
+<script>
+const questions=[
+["What does AI stand for?",["Artificial Intelligence","Automated Internet","Advanced Information","Artificial Integration"],0],
+["What is Machine Learning?",["A way for computers to learn patterns from data","A computer repair method","A type of monitor","A web browser"],0],
+["Which language is widely used in AI and Machine Learning?",["Python","HTML","CSS","XML"],0],
+["What is a neural network inspired by?",["The human brain","A computer keyboard","A database table","A search engine"],0],
+["Which is an example of AI?",["A recommendation system suggesting movies","A simple light switch","A printed book","A USB cable"],0],
+["What is a dataset?",["A collection of data","A computer processor","A programming keyboard","A network device"],0],
+["What is supervised learning?",["Learning from labelled training data","Learning without any data","Only playing games","Repairing hardware"],0],
+["What does NLP mainly deal with?",["Human language","Computer hardware","Electricity","Screen resolution"],0],
+["What is Computer Vision?",["AI that helps computers understand images and video","A type of monitor","A programming editor","A network protocol"],0],
+["What is Generative AI?",["AI that can create new content","AI used only for storage","A computer cable","A database format"],0],
+["What is an AI model?",["A system trained to make predictions or generate outputs","A physical computer case","A web page","A keyboard layout"],0],
+["What is AI bias?",["Systematic unfairness in an AI system's results","A faster processor","A type of encryption","A coding shortcut"],0],
+["Why is training data important?",["It helps a model learn patterns","It increases battery size","It replaces the operating system","It creates internet access"],0],
+["Which is a responsible AI practice?",["Checking for fairness, privacy and safety","Ignoring errors","Using data without permission","Never testing the model"],0],
+["What is a chatbot?",["A program that can communicate with users using natural language","A computer mouse","A storage device","A programming cable"],0]
+];
+
+let current=0,score=0,chosen=-1;
+const $=id=>document.getElementById(id);
+function render(){
+ chosen=-1;
+ const q=questions[current];
+ $("count").textContent="Question "+(current+1)+" of "+questions.length;
+ $("score").textContent="Score: "+score;
+ $("fill").style.width=((current+1)/questions.length*100)+"%";
+ $("question").textContent=q[0];
+ $("options").innerHTML="";
+ q[1].forEach((text,n)=>{
+   const b=document.createElement("button");
+   b.className="option";
+   b.textContent=String.fromCharCode(65+n)+". "+text;
+   b.onclick=()=>answer(n);
+   $("options").appendChild(b);
+ });
+ $("next").disabled=true;
+ $("next").textContent=current===questions.length-1?"Finish Quiz":"Next Question";
+}
+function answer(n){
+ if(chosen!==-1)return;
+ chosen=n;
+ const q=questions[current];
+ document.querySelectorAll(".option").forEach((b,k)=>{
+   b.disabled=true;
+   if(k===q[2])b.classList.add("correct");
+   if(k===n && n!==q[2])b.classList.add("wrong");
+ });
+ if(n===q[2])score++;
+ $("score").textContent="Score: "+score;
+ $("next").disabled=false;
+}
+$("next").onclick=()=>{
+ if(current<questions.length-1){current++;render();}
+ else{
+   const pct=Math.round(score/questions.length*100);
+   $("quiz").classList.add("hidden");
+   $("result").classList.remove("hidden");
+   $("final").textContent=score+"/"+questions.length;
+   $("correct").textContent=score;
+   $("wrong").textContent=questions.length-score;
+   $("percent").textContent=pct+"%";
+   $("message").textContent=pct>=80?"Excellent! Strong AI knowledge.":pct>=60?"Good job! Keep learning AI.":"Keep practicing AI concepts!";
+ }
+};
+$("restart").onclick=()=>{current=0;score=0;$("result").classList.add("hidden");$("quiz").classList.remove("hidden");render();};
+render();
+</script>
+</body>
+</html>
